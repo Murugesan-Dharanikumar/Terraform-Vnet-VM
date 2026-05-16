@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 3.100"
     }
   }
 }
@@ -42,13 +42,36 @@ resource "azurerm_subnet" "subnet" {
 }
 
 # =========================
+# Network Security Group
+# =========================
+resource "azurerm_network_security_group" "nsg" {
+  name                = "${var.vm_name}-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "Allow-SSH"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+# =========================
 # Public IP
 # =========================
 resource "azurerm_public_ip" "pip" {
   name                = "${var.vm_name}-pip"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Dynamic"
+
+  allocation_method = "Static"
+  sku               = "Standard"
 }
 
 # =========================
@@ -65,6 +88,14 @@ resource "azurerm_network_interface" "nic" {
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.pip.id
   }
+}
+
+# =========================
+# Associate NSG to NIC
+# =========================
+resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
+  network_interface_id      = azurerm_network_interface.nic.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 # =========================
@@ -86,6 +117,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   ]
 
   os_disk {
+    name                 = "${var.vm_name}-osdisk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -96,4 +128,17 @@ resource "azurerm_linux_virtual_machine" "vm" {
     sku       = "22_04-lts"
     version   = "latest"
   }
+
+  computer_name = var.vm_name
+}
+
+# =========================
+# Outputs
+# =========================
+output "public_ip_address" {
+  value = azurerm_public_ip.pip.ip_address
+}
+
+output "vm_name" {
+  value = azurerm_linux_virtual_machine.vm.name
 }
