@@ -5,52 +5,105 @@ pool:
   name: DEVPOOL
 
 variables:
-  TF_VERSION: '1.6.6'
+  terraformVersion: '1.6.6'
+  workingDirectory: 'terraform'
 
-steps:
+stages:
 
-# Install Terraform
-- task: TerraformInstaller@1
-  displayName: Install Terraform
-  inputs:
-    terraformVersion: $(TF_VERSION)
-
-# Terraform Init
-- task: TerraformTaskV4@4
-  displayName: Terraform Init
-  inputs:
-    provider: 'azurerm'
-    command: 'init'
-    workingDirectory: '$(System.DefaultWorkingDirectory)'
-    backendServiceArm: 'Azure-Service-Connection'
-    backendAzureRmResourceGroupName: 'DevOps-RG'
-    backendAzureRmStorageAccountName: 'terraformstate12345'
-    backendAzureRmContainerName: 'tfstate'
-    backendAzureRmKey: 'terraform.tfstate'
-
-# Terraform Validate
-- task: TerraformTaskV4@4
+# =========================
+# Terraform Validate Stage
+# =========================
+- stage: Validate
   displayName: Terraform Validate
-  inputs:
-    provider: 'azurerm'
-    command: 'validate'
-    workingDirectory: '$(System.DefaultWorkingDirectory)'
 
-# Terraform Plan
-- task: TerraformTaskV4@4
+  jobs:
+  - job: Validate
+    steps:
+
+    - task: TerraformInstaller@1
+      displayName: Install Terraform
+      inputs:
+        terraformVersion: $(terraformVersion)
+
+    - task: TerraformTaskV4@4
+      displayName: Terraform Init
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: '$(workingDirectory)'
+        backendServiceArm: 'Azure-Service-Connection'
+
+    - task: TerraformTaskV4@4
+      displayName: Terraform Validate
+      inputs:
+        provider: 'azurerm'
+        command: 'validate'
+        workingDirectory: '$(workingDirectory)'
+
+# =========================
+# Terraform Plan Stage
+# =========================
+- stage: Plan
   displayName: Terraform Plan
-  inputs:
-    provider: 'azurerm'
-    command: 'plan'
-    workingDirectory: '$(System.DefaultWorkingDirectory)'
-    environmentServiceNameAzureRM: 'Azure-Service-Connection'
+  dependsOn: Validate
 
-# Terraform Apply
-- task: TerraformTaskV4@4
+  jobs:
+  - job: Plan
+    steps:
+
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: $(terraformVersion)
+
+    - task: TerraformTaskV4@4
+      displayName: Terraform Init
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: '$(workingDirectory)'
+        backendServiceArm: 'Azure-Service-Connection'
+
+    - task: TerraformTaskV4@4
+      displayName: Terraform Plan
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: '$(workingDirectory)'
+        environmentServiceNameAzureRM: 'Azure-Service-Connection'
+
+# =========================
+# Terraform Apply Stage
+# =========================
+- stage: Apply
   displayName: Terraform Apply
-  inputs:
-    provider: 'azurerm'
-    command: 'apply'
-    workingDirectory: '$(System.DefaultWorkingDirectory)'
-    commandOptions: '-auto-approve'
-    environmentServiceNameAzureRM: 'Azure-Service-Connection'
+  dependsOn: Plan
+
+  jobs:
+  - deployment: Apply
+    environment: dev
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: $(terraformVersion)
+
+          - task: TerraformTaskV4@4
+            displayName: Terraform Init
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: '$(workingDirectory)'
+              backendServiceArm: 'Azure-Service-Connection'
+
+          - task: TerraformTaskV4@4
+            displayName: Terraform Apply
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              workingDirectory: '$(workingDirectory)'
+              environmentServiceNameAzureRM: 'Azure-Service-Connection'
+              commandOptions: '-auto-approve'
