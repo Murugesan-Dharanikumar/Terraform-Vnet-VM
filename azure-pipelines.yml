@@ -20,11 +20,6 @@ stages:
   - job: Validate
     steps:
 
-    - task: TerraformInstaller@1
-      displayName: Install Terraform
-      inputs:
-        terraformVersion: '$(terraformVersion)'
-
     - task: TerraformTaskV4@4
       displayName: Terraform Init
       inputs:
@@ -44,6 +39,7 @@ stages:
         command: 'validate'
         workingDirectory: '$(workingDirectory)'
 
+
 # =========================
 # Terraform Plan Stage
 # =========================
@@ -55,10 +51,6 @@ stages:
   - job: Plan
     steps:
 
-    - task: TerraformInstaller@1
-      inputs:
-        terraformVersion: '$(terraformVersion)'
-
     - task: TerraformTaskV4@4
       displayName: Terraform Init
       inputs:
@@ -66,6 +58,10 @@ stages:
         command: 'init'
         workingDirectory: '$(workingDirectory)'
         backendServiceArm: 'Azure-Service-Connection'
+        backendAzureRmResourceGroupName: 'tfstate-rg'
+        backendAzureRmStorageAccountName: 'tfstatestorage123'
+        backendAzureRmContainerName: 'tfstate'
+        backendAzureRmKey: 'terraform.tfstate'
 
     - task: TerraformTaskV4@4
       displayName: Terraform Plan
@@ -74,6 +70,7 @@ stages:
         command: 'plan'
         workingDirectory: '$(workingDirectory)'
         environmentServiceNameAzureRM: 'Azure-Service-Connection'
+
 
 # =========================
 # Terraform Apply Stage
@@ -91,10 +88,6 @@ stages:
         deploy:
           steps:
 
-          - task: TerraformInstaller@1
-            inputs:
-              terraformVersion: '$(terraformVersion)'
-
           - task: TerraformTaskV4@4
             displayName: Terraform Init
             inputs:
@@ -102,6 +95,10 @@ stages:
               command: 'init'
               workingDirectory: '$(workingDirectory)'
               backendServiceArm: 'Azure-Service-Connection'
+              backendAzureRmResourceGroupName: 'tfstate-rg'
+              backendAzureRmStorageAccountName: 'tfstatestorage123'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'terraform.tfstate'
 
           - task: TerraformTaskV4@4
             displayName: Terraform Apply
