@@ -23,7 +23,7 @@ stages:
     - task: TerraformInstaller@1
       displayName: Install Terraform
       inputs:
-        terraformVersion: $(terraformVersion)
+        terraformVersion: '$(terraformVersion)'
 
     - task: TerraformTaskV4@4
       displayName: Terraform Init
@@ -53,7 +53,7 @@ stages:
 
     - task: TerraformInstaller@1
       inputs:
-        terraformVersion: $(terraformVersion)
+        terraformVersion: '$(terraformVersion)'
 
     - task: TerraformTaskV4@4
       displayName: Terraform Init
@@ -89,7 +89,7 @@ stages:
 
           - task: TerraformInstaller@1
             inputs:
-              terraformVersion: $(terraformVersion)
+              terraformVersion: '$(terraformVersion)'
 
           - task: TerraformTaskV4@4
             displayName: Terraform Init
@@ -105,5 +105,5 @@ stages:
               provider: 'azurerm'
               command: 'apply'
               workingDirectory: '$(workingDirectory)'
-              environmentServiceNameAzureRM: 'Azure-Service-Connection'
               commandOptions: '-auto-approve'
+              environmentServiceNameAzureRM: 'Azure-Service-Connection'
